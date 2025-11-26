@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vshu_task_bot
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-vshu_bot}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-vshu_bot_db}
+      - REMINDER_HOUR=${REMINDER_HOUR:-9}
+      - REMINDER_MINUTE=${REMINDER_MINUTE:-0}
+      - REMINDER_DAYS_BEFORE=${REMINDER_DAYS_BEFORE:-3}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - vshu_network
+
+  db:
+    image: postgres:16-alpine
+    container_name: vshu_task_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-vshu_bot}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-vshu_bot_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vshu_bot} -d ${POSTGRES_DB:-vshu_bot_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vshu_network
+
+volumes:
+  postgres_data:
+
+networks:
+  vshu_network:
+    driver: bridge
+

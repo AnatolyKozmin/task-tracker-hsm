@@ -1,0 +1,36 @@
+from bot.keyboards.inline import (
+    get_main_menu_keyboard,
+    get_projects_keyboard,
+    get_project_menu_keyboard,
+    get_project_settings_keyboard,
+    get_roles_keyboard,
+    get_tasks_keyboard,
+    get_task_menu_keyboard,
+    get_task_status_keyboard,
+    get_members_keyboard,
+    get_confirmation_keyboard,
+    get_back_keyboard,
+    get_cancel_keyboard,
+    get_reminders_settings_keyboard,
+    get_reminder_time_keyboard,
+    get_reminder_days_keyboard,
+)
+
+__all__ = [
+    "get_main_menu_keyboard",
+    "get_projects_keyboard",
+    "get_project_menu_keyboard",
+    "get_project_settings_keyboard",
+    "get_roles_keyboard",
+    "get_tasks_keyboard",
+    "get_task_menu_keyboard",
+    "get_task_status_keyboard",
+    "get_members_keyboard",
+    "get_confirmation_keyboard",
+    "get_back_keyboard",
+    "get_cancel_keyboard",
+    "get_reminders_settings_keyboard",
+    "get_reminder_time_keyboard",
+    "get_reminder_days_keyboard",
+]
+
