@@ -17,9 +17,6 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-vshu_bot}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB:-vshu_bot_db}
-      - REMINDER_HOUR=${REMINDER_HOUR:-9}
-      - REMINDER_MINUTE=${REMINDER_MINUTE:-0}
-      - REMINDER_DAYS_BEFORE=${REMINDER_DAYS_BEFORE:-3}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ./logs:/app/logs
@@ -37,7 +34,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${DB_EXTERNAL_PORT:-5433}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vshu_bot} -d ${POSTGRES_DB:-vshu_bot_db}"]
       interval: 5s
@@ -46,10 +43,28 @@ services:
     networks:
       - vshu_network
 
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: vshu_task_pgadmin
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@vshu.local}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin123}
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "127.0.0.1:${PGADMIN_PORT:-5051}:80"
+    networks:
+      - vshu_network
+
 volumes:
   postgres_data:
+  pgadmin_data:
 
 networks:
   vshu_network:
     driver: bridge
-

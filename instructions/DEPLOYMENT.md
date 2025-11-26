@@ -28,13 +28,18 @@ nano .env
 BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz  # Токен от BotFather
 POSTGRES_PASSWORD=your_secure_password_here      # Придумайте надёжный пароль
 
-# Опционально (можно оставить по умолчанию):
+# Порты (измените если заняты):
+DB_EXTERNAL_PORT=5433      # Порт PostgreSQL (по умолчанию 5433)
+PGADMIN_PORT=5051          # Порт pgAdmin (по умолчанию 5051)
+
+# pgAdmin:
+PGADMIN_EMAIL=admin@vshu.local
+PGADMIN_PASSWORD=admin123   # Измените на безопасный!
+
+# Опционально:
 POSTGRES_USER=vshu_bot
 POSTGRES_DB=vshu_bot_db
-REMINDER_HOUR=9           # Час отправки напоминаний (по МСК)
-REMINDER_MINUTE=0         # Минута отправки
-REMINDER_DAYS_BEFORE=3    # За сколько дней до дедлайна напоминать
-LOG_LEVEL=INFO            # Уровень логирования (DEBUG, INFO, WARNING, ERROR)
+LOG_LEVEL=INFO
 ```
 
 ### 3. Запустите бота
@@ -44,6 +49,27 @@ docker-compose up -d --build
 ```
 
 Готово! 🎉
+
+## 📊 pgAdmin - управление базой данных
+
+После запуска pgAdmin доступен по адресу:
+```
+http://localhost:5051
+```
+
+**Вход:**
+- Email: `admin@vshu.local` (или что указали в PGADMIN_EMAIL)
+- Пароль: `admin123` (или что указали в PGADMIN_PASSWORD)
+
+**Подключение к БД в pgAdmin:**
+1. ПКМ на "Servers" → "Register" → "Server"
+2. Name: `VShu Bot DB`
+3. Вкладка "Connection":
+   - Host: `db`
+   - Port: `5432`
+   - Database: `vshu_bot_db`
+   - Username: `vshu_bot`
+   - Password: ваш POSTGRES_PASSWORD
 
 ## Полезные команды
 
