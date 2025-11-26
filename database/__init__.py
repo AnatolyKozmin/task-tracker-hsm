@@ -1,5 +1,5 @@
 from database.connection import DatabaseManager, get_db_manager
-from database.models import Base, User, Project, Role, ProjectMember, Task, TaskAssignee
+from database.models import Base, User, Project, RoleType, ProjectMember, Task, TaskAssignee, TaskStatus
 
 __all__ = [
     "DatabaseManager",
@@ -7,9 +7,10 @@ __all__ = [
     "Base",
     "User",
     "Project",
-    "Role",
+    "RoleType",
     "ProjectMember",
     "Task",
     "TaskAssignee",
+    "TaskStatus",
 ]
 

@@ -8,12 +8,15 @@ from bot.keyboards.inline import (
     get_task_menu_keyboard,
     get_task_status_keyboard,
     get_members_keyboard,
+    get_member_actions_keyboard,
     get_confirmation_keyboard,
     get_back_keyboard,
     get_cancel_keyboard,
     get_reminders_settings_keyboard,
     get_reminder_time_keyboard,
     get_reminder_days_keyboard,
+    get_assignees_selection_keyboard,
+    get_my_tasks_keyboard,
 )
 
 __all__ = [
@@ -26,11 +29,14 @@ __all__ = [
     "get_task_menu_keyboard",
     "get_task_status_keyboard",
     "get_members_keyboard",
+    "get_member_actions_keyboard",
     "get_confirmation_keyboard",
     "get_back_keyboard",
     "get_cancel_keyboard",
     "get_reminders_settings_keyboard",
     "get_reminder_time_keyboard",
     "get_reminder_days_keyboard",
+    "get_assignees_selection_keyboard",
+    "get_my_tasks_keyboard",
 ]
 
