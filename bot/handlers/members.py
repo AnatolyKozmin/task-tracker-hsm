@@ -32,7 +32,7 @@ async def callback_project_members(callback: CallbackQuery):
         
         # Проверяем права
         current_member = await project_repo.get_member(project_id, callback.from_user.id)
-        can_manage = current_member and current_member.role in [RoleType.PROJECTNIK, RoleType.MAIN_ORGANIZER]
+        can_manage = current_member and current_member.role in [RoleType.PROJECTNIK.value, RoleType.MAIN_ORGANIZER.value]
     
     text = f"👥 <b>Участники проекта \"{project.name}\":</b>\n\n"
     
@@ -135,7 +135,7 @@ async def callback_select_role(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     logger.info(f"Member {user_id} added to project {project_id} with role {role.value}")
     
-    role_name = ROLE_NAMES.get(role, "Участник")
+    role_name = ROLE_NAMES.get(role.value, "Участник")
     
     await callback.message.edit_text(
         f"✅ <b>Участник добавлен!</b>\n\n"
@@ -246,7 +246,7 @@ async def callback_change_role_select(callback: CallbackQuery, state: FSMContext
     await state.clear()
     logger.info(f"Member {user_id} role changed to {role.value} in project {project_id}")
     
-    role_name = ROLE_NAMES.get(role, "Участник")
+    role_name = ROLE_NAMES.get(role.value, "Участник")
     
     await callback.message.edit_text(
         f"✅ Роль изменена на: {role_name}",

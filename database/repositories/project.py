@@ -32,7 +32,7 @@ class ProjectRepository:
         member = ProjectMember(
             project_id=project.id,
             user_id=created_by,
-            role=RoleType.PROJECTNIK,
+            role=RoleType.PROJECTNIK.value,
         )
         self.session.add(member)
         await self.session.flush()
@@ -103,7 +103,7 @@ class ProjectRepository:
                 select(ProjectMember).where(
                     and_(
                         ProjectMember.project_id == project_id,
-                        ProjectMember.role == role,
+                        ProjectMember.role == role.value,
                     )
                 )
             )
@@ -114,7 +114,7 @@ class ProjectRepository:
         member = ProjectMember(
             project_id=project_id,
             user_id=user_id,
-            role=role,
+            role=role.value,
         )
         self.session.add(member)
         await self.session.flush()
@@ -162,7 +162,7 @@ class ProjectRepository:
                 select(ProjectMember).where(
                     and_(
                         ProjectMember.project_id == project_id,
-                        ProjectMember.role == new_role,
+                        ProjectMember.role == new_role.value,
                     )
                 )
             )
@@ -170,7 +170,7 @@ class ProjectRepository:
             if current_count >= limit:
                 return None, f"Достигнут лимит для роли ({limit})"
         
-        member.role = new_role
+        member.role = new_role.value
         return member, ""
     
     async def get_project_members(self, project_id: int) -> List[ProjectMember]:

@@ -100,7 +100,7 @@ def get_roles_keyboard(project_id: int) -> InlineKeyboardMarkup:
     for role in RoleType:
         builder.row(
             InlineKeyboardButton(
-                text=ROLE_NAMES[role],
+                text=ROLE_NAMES[role.value],
                 callback_data=f"role:{project_id}:{role.value}",
             )
         )
@@ -123,11 +123,11 @@ def get_tasks_keyboard(
     builder = InlineKeyboardBuilder()
     
     status_emoji = {
-        TaskStatus.PENDING: "⏳",
-        TaskStatus.IN_PROGRESS: "🔄",
-        TaskStatus.COMPLETED: "✅",
-        TaskStatus.DELAYED: "⚠️",
-        TaskStatus.NOT_COMPLETED: "❌",
+        TaskStatus.PENDING.value: "⏳",
+        TaskStatus.IN_PROGRESS.value: "🔄",
+        TaskStatus.COMPLETED.value: "✅",
+        TaskStatus.DELAYED.value: "⚠️",
+        TaskStatus.NOT_COMPLETED.value: "❌",
     }
     
     for task in tasks:
@@ -558,11 +558,11 @@ def get_my_tasks_keyboard(tasks: List[Task]) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     
     status_emoji = {
-        TaskStatus.PENDING: "⏳",
-        TaskStatus.IN_PROGRESS: "🔄",
-        TaskStatus.COMPLETED: "✅",
-        TaskStatus.DELAYED: "⚠️",
-        TaskStatus.NOT_COMPLETED: "❌",
+        TaskStatus.PENDING.value: "⏳",
+        TaskStatus.IN_PROGRESS.value: "🔄",
+        TaskStatus.COMPLETED.value: "✅",
+        TaskStatus.DELAYED.value: "⚠️",
+        TaskStatus.NOT_COMPLETED.value: "❌",
     }
     
     for i, task in enumerate(tasks, 1):

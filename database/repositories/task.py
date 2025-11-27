@@ -68,7 +68,7 @@ class TaskRepository:
             .where(Task.project_id == project_id)
         )
         if status:
-            query = query.where(Task.status == status)
+            query = query.where(Task.status == status.value)
         
         query = query.order_by(Task.deadline.asc().nullslast(), Task.created_at.desc())
         result = await self.session.execute(query)
@@ -90,7 +90,7 @@ class TaskRepository:
         )
         
         if status:
-            query = query.where(Task.status == status)
+            query = query.where(Task.status == status.value)
         if project_id:
             query = query.where(Task.project_id == project_id)
         
@@ -115,7 +115,7 @@ class TaskRepository:
             .options(selectinload(Task.project))
             .where(
                 and_(
-                    Task.status.in_([TaskStatus.PENDING, TaskStatus.IN_PROGRESS]),
+                    Task.status.in_([TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]),
                     Task.deadline.isnot(None),
                     Task.deadline <= deadline_threshold,
                     Task.deadline >= now,
@@ -135,7 +135,7 @@ class TaskRepository:
             .options(selectinload(Task.project))
             .where(
                 and_(
-                    Task.status.in_([TaskStatus.PENDING, TaskStatus.IN_PROGRESS]),
+                    Task.status.in_([TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]),
                     Task.deadline.isnot(None),
                     Task.deadline < now,
                 )
@@ -152,7 +152,7 @@ class TaskRepository:
         """Обновить статус задачи"""
         task = await self.get_by_id(task_id)
         if task:
-            task.status = status
+            task.status = status.value
             if status == TaskStatus.COMPLETED:
                 task.completed_at = datetime.utcnow()
             else:
@@ -239,7 +239,7 @@ class TaskRepository:
             .where(
                 and_(
                     TaskAssignee.user_id == telegram_id,
-                    Task.status.in_([TaskStatus.PENDING, TaskStatus.IN_PROGRESS]),
+                    Task.status.in_([TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]),
                     Task.deadline.isnot(None),
                     or_(
                         Task.deadline <= deadline_threshold,

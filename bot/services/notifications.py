@@ -39,7 +39,7 @@ async def send_project_reminders(bot: Bot, project_id: int):
         overdue_tasks = []
         
         for task in tasks:
-            if task.status in [TaskStatus.COMPLETED, TaskStatus.NOT_COMPLETED]:
+            if task.status in [TaskStatus.COMPLETED.value, TaskStatus.NOT_COMPLETED.value]:
                 continue
             
             if not task.deadline:

@@ -149,7 +149,7 @@ async def process_project_description(message: Message, state: FSMContext):
     )
     if description:
         text += f"📝 {description}\n"
-    text += f"\n👤 Вы назначены проектником ({ROLE_NAMES[RoleType.PROJECTNIK]})"
+    text += f"\n👤 Вы назначены проектником ({ROLE_NAMES[RoleType.PROJECTNIK.value]})"
     
     await message.answer(
         text,
@@ -174,7 +174,7 @@ async def callback_project_menu(callback: CallbackQuery):
         
         # Проверяем права (проектник или главный организатор)
         member = await project_repo.get_member(project_id, callback.from_user.id)
-        is_admin = member and member.role in [RoleType.PROJECTNIK, RoleType.MAIN_ORGANIZER]
+        is_admin = member and member.role in [RoleType.PROJECTNIK.value, RoleType.MAIN_ORGANIZER.value]
     
     text = f"📁 <b>{project.name}</b>\n"
     if project.description:

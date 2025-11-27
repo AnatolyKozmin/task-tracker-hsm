@@ -23,11 +23,11 @@ logger = logging.getLogger(__name__)
 
 
 STATUS_NAMES = {
-    TaskStatus.PENDING: "⏳ Ожидает",
-    TaskStatus.IN_PROGRESS: "🔄 В работе",
-    TaskStatus.COMPLETED: "✅ Выполнено",
-    TaskStatus.DELAYED: "⚠️ Задерживается",
-    TaskStatus.NOT_COMPLETED: "❌ Не выполнено",
+    TaskStatus.PENDING.value: "⏳ Ожидает",
+    TaskStatus.IN_PROGRESS.value: "🔄 В работе",
+    TaskStatus.COMPLETED.value: "✅ Выполнено",
+    TaskStatus.DELAYED.value: "⚠️ Задерживается",
+    TaskStatus.NOT_COMPLETED.value: "❌ Не выполнено",
 }
 
 
@@ -42,7 +42,7 @@ async def callback_my_tasks(callback: CallbackQuery):
             status=None,  # Все статусы кроме завершенных
         )
         # Фильтруем завершенные
-        tasks = [t for t in tasks if t.status != TaskStatus.COMPLETED]
+        tasks = [t for t in tasks if t.status != TaskStatus.COMPLETED.value]
     
     if tasks:
         text = "📋 <b>Ваши активные задачи:</b>\n\n"
@@ -74,7 +74,7 @@ async def cmd_my_tasks(message: Message):
             message.from_user.id,
             status=None,
         )
-        tasks = [t for t in tasks if t.status != TaskStatus.COMPLETED]
+        tasks = [t for t in tasks if t.status != TaskStatus.COMPLETED.value]
     
     if tasks:
         text = "📋 <b>Ваши активные задачи:</b>\n\n"
@@ -319,7 +319,7 @@ async def callback_task_menu(callback: CallbackQuery):
         
         project_repo = ProjectRepository(session)
         member = await project_repo.get_member(task.project_id, callback.from_user.id)
-        can_edit = member and member.role in [RoleType.PROJECTNIK, RoleType.MAIN_ORGANIZER]
+        can_edit = member and member.role in [RoleType.PROJECTNIK.value, RoleType.MAIN_ORGANIZER.value]
     
     status = STATUS_NAMES.get(task.status, "?")
     
@@ -384,7 +384,7 @@ async def callback_set_task_status(callback: CallbackQuery):
         
         project_repo = ProjectRepository(session)
         member = await project_repo.get_member(task.project_id, callback.from_user.id)
-        can_edit = member and member.role in [RoleType.PROJECTNIK, RoleType.MAIN_ORGANIZER]
+        can_edit = member and member.role in [RoleType.PROJECTNIK.value, RoleType.MAIN_ORGANIZER.value]
     
     logger.info(f"Task {task_id} status changed to {new_status.value} by user {callback.from_user.id}")
     

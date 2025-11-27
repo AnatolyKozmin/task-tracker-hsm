@@ -9,7 +9,6 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Boolean,
-    Enum as SQLEnum,
     UniqueConstraint,
     Integer,
 )
@@ -50,12 +49,12 @@ ROLE_LIMITS = {
 }
 
 ROLE_NAMES = {
-    RoleType.PROJECTNIK: "🎯 Проектник",
-    RoleType.MAIN_ORGANIZER: "⭐ Главный организатор",
-    RoleType.SENIOR_TP: "🔧 Старший ТП",
-    RoleType.SENIOR_PR: "📢 Старший PR",
-    RoleType.SENIOR_CONTENT: "📝 Старший наполнения",
-    RoleType.MEMBER: "👤 Участник",
+    RoleType.PROJECTNIK.value: "🎯 Проектник",
+    RoleType.MAIN_ORGANIZER.value: "⭐ Главный организатор",
+    RoleType.SENIOR_TP.value: "🔧 Старший ТП",
+    RoleType.SENIOR_PR.value: "📢 Старший PR",
+    RoleType.SENIOR_CONTENT.value: "📝 Старший наполнения",
+    RoleType.MEMBER.value: "👤 Участник",
 }
 
 
@@ -131,7 +130,7 @@ class ProjectMember(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"))
-    role: Mapped[RoleType] = mapped_column(SQLEnum(RoleType), default=RoleType.MEMBER)
+    role: Mapped[RoleType] = mapped_column(String(50), default=RoleType.MEMBER.value)
     joined_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     # Уникальность: один пользователь - одна роль в проекте
@@ -153,7 +152,7 @@ class Task(Base):
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     deadline: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    status: Mapped[TaskStatus] = mapped_column(SQLEnum(TaskStatus), default=TaskStatus.PENDING)
+    status: Mapped[TaskStatus] = mapped_column(String(50), default=TaskStatus.PENDING.value)
     created_by: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
