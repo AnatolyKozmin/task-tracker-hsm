@@ -25,6 +25,7 @@ services:
     image: postgres:16-alpine
     container_name: vshu_task_db
     restart: unless-stopped
+    command: postgres -p 5433
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-vshu_bot}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -32,9 +33,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:${DB_EXTERNAL_PORT:-5433}:5432"
+      - "127.0.0.1:${DB_EXTERNAL_PORT:-5433}:5433"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vshu_bot} -d ${POSTGRES_DB:-vshu_bot_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vshu_bot} -d ${POSTGRES_DB:-vshu_bot_db} -p 5433"]
       interval: 5s
       timeout: 5s
       retries: 5
