@@ -1,14 +1,15 @@
-# Используем официальный образ Python
+# Используем официальный образ Python (стабильная версия Debian Bookworm)
 FROM python:3.12-slim
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Устанавливаем системные зависимости
-RUN apt-get update && apt-get install -y \
-    gcc \
+# Устанавливаем системные зависимости для PostgreSQL
+RUN apt-get update --fix-missing && \
+    apt-get install -y --no-install-recommends \
     libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Копируем файл зависимостей
 COPY requirements.txt .

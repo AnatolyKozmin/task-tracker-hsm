@@ -40,7 +40,7 @@ class RoleType(str, Enum):
 
 # Лимиты на роли в проекте
 ROLE_LIMITS = {
-    RoleType.PROJECTNIK: 1,
+    RoleType.PROJECTNIK: 2,  # Изменено с 1 на 2
     RoleType.MAIN_ORGANIZER: 2,
     RoleType.SENIOR_TP: 1,
     RoleType.SENIOR_PR: 1,
