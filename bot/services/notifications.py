@@ -18,6 +18,12 @@ async def send_project_reminders(bot: Bot, project_id: int):
     Учитывает настройки напоминаний проекта.
     """
     db = get_db_manager()
+    
+    # Собираем все данные внутри сессии
+    project_name = None
+    user_tasks: Dict[int, List[dict]] = {}
+    user_overdue: Dict[int, List[dict]] = {}
+    
     async with db.session() as session:
         project_repo = ProjectRepository(session)
         project = await project_repo.get_by_id(project_id)
@@ -25,19 +31,19 @@ async def send_project_reminders(bot: Bot, project_id: int):
         if not project or not project.reminders_enabled:
             return
         
+        project_name = project.name
+        reminder_days = project.reminder_days_before
+        
         task_repo = TaskRepository(session)
         
         # Получаем задачи с учётом настроек проекта
         now = moscow_now()
-        deadline_threshold = now + timedelta(days=project.reminder_days_before)
+        deadline_threshold = now + timedelta(days=reminder_days)
         
         # Получаем все задачи проекта с приближающимися дедлайнами
         tasks = await task_repo.get_project_tasks(project_id)
         
-        # Фильтруем по дедлайну и статусу
-        upcoming_tasks = []
-        overdue_tasks = []
-        
+        # Фильтруем по дедлайну и статусу и собираем данные
         for task in tasks:
             if task.status in [TaskStatus.COMPLETED.value, TaskStatus.NOT_COMPLETED.value]:
                 continue
@@ -53,29 +59,29 @@ async def send_project_reminders(bot: Bot, project_id: int):
             now_utc = now.astimezone(timezone.utc) if now.tzinfo else now
             threshold_utc = deadline_threshold.astimezone(timezone.utc) if deadline_threshold.tzinfo else deadline_threshold
             
-            if task_deadline < now_utc:
-                overdue_tasks.append(task)
-            elif task_deadline <= threshold_utc:
-                upcoming_tasks.append(task)
+            # Собираем данные задачи в словарь (не ORM объект)
+            task_data = {
+                "title": task.title,
+                "deadline": task.deadline,
+            }
+            
+            is_overdue = task_deadline < now_utc
+            is_upcoming = task_deadline <= threshold_utc
+            
+            # Группируем по пользователям
+            for assignee in task.assignees:
+                user_id = assignee.user_id
+                
+                if is_overdue:
+                    if user_id not in user_overdue:
+                        user_overdue[user_id] = []
+                    user_overdue[user_id].append(task_data)
+                elif is_upcoming:
+                    if user_id not in user_tasks:
+                        user_tasks[user_id] = []
+                    user_tasks[user_id].append(task_data)
     
-    # Группируем задачи по пользователям
-    user_tasks: Dict[int, List[Task]] = {}
-    user_overdue: Dict[int, List[Task]] = {}
-    
-    for task in upcoming_tasks:
-        for assignee in task.assignees:
-            user_id = assignee.user_id
-            if user_id not in user_tasks:
-                user_tasks[user_id] = []
-            user_tasks[user_id].append(task)
-    
-    for task in overdue_tasks:
-        for assignee in task.assignees:
-            user_id = assignee.user_id
-            if user_id not in user_overdue:
-                user_overdue[user_id] = []
-            user_overdue[user_id].append(task)
-    
+    # Теперь отправляем сообщения (вне сессии, но с простыми данными)
     all_users = set(user_tasks.keys()) | set(user_overdue.keys())
     sent_count = 0
     
@@ -86,24 +92,25 @@ async def send_project_reminders(bot: Bot, project_id: int):
         if not tasks_list and not overdue_list:
             continue
         
-        message = f"👋 <b>Напоминание от проекта \"{project.name}\"</b>\n\n"
+        message = f"👋 <b>Напоминание от проекта \"{project_name}\"</b>\n\n"
         
         if overdue_list:
             message += "🚨 <b>ПРОСРОЧЕННЫЕ:</b>\n"
-            for task in overdue_list:
-                deadline_str = format_datetime(task.deadline)
-                message += f"• <b>{task.title}</b>\n"
+            for task_data in overdue_list:
+                deadline_str = format_datetime(task_data["deadline"])
+                message += f"• <b>{task_data['title']}</b>\n"
                 message += f"  ⚠️ DDL был: {deadline_str}\n\n"
         
         if tasks_list:
             message += "📋 <b>Приближающиеся дедлайны:</b>\n"
-            for task in tasks_list:
-                deadline_str = format_datetime(task.deadline)
+            for task_data in tasks_list:
+                deadline_str = format_datetime(task_data["deadline"])
                 
                 # Определяем срочность
-                if task.deadline:
+                deadline = task_data["deadline"]
+                if deadline:
                     now_naive = moscow_now().replace(tzinfo=None)
-                    deadline_naive = task.deadline.replace(tzinfo=None) if task.deadline.tzinfo else task.deadline
+                    deadline_naive = deadline.replace(tzinfo=None) if deadline.tzinfo else deadline
                     days_left = (deadline_naive - now_naive).days
                     
                     if days_left <= 1:
@@ -115,7 +122,7 @@ async def send_project_reminders(bot: Bot, project_id: int):
                 else:
                     urgency = "📋"
                 
-                message += f"• {urgency} <b>{task.title}</b>\n"
+                message += f"• {urgency} <b>{task_data['title']}</b>\n"
                 message += f"  📅 DDL: {deadline_str}\n\n"
         
         message += "💪 <i>Удачи в работе!</i>"
@@ -131,7 +138,7 @@ async def send_project_reminders(bot: Bot, project_id: int):
             logger.warning(f"Failed to send reminder to user {user_id}: {e}")
     
     if sent_count > 0:
-        logger.info(f"Sent {sent_count} reminders for project {project_id} ({project.name})")
+        logger.info(f"Sent {sent_count} reminders for project {project_id} ({project_name})")
 
 
 async def send_all_reminders(bot: Bot):

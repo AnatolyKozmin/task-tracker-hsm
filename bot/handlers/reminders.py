@@ -34,7 +34,7 @@ async def callback_reminders_settings(callback: CallbackQuery):
         
         # Проверяем права
         member = await project_repo.get_member(project_id, callback.from_user.id)
-        if not member or member.role not in [RoleType.PROJECTNIK, RoleType.MAIN_ORGANIZER]:
+        if not member or member.role not in [RoleType.PROJECTNIK.value, RoleType.MAIN_ORGANIZER.value]:
             await callback.answer("❌ Нет доступа к настройкам", show_alert=True)
             return
     
@@ -80,26 +80,26 @@ async def callback_toggle_reminders(callback: CallbackQuery):
         
         # Переключаем
         project.reminders_enabled = not project.reminders_enabled
+        
+        # Сохраняем данные для ответа
         new_status = project.reminders_enabled
+        project_name = project.name
+        reminder_hour = project.reminder_hour
+        reminder_minute = project.reminder_minute
+        reminder_days = project.reminder_days_before
     
     status_text = "🔔 Напоминания включены!" if new_status else "🔕 Напоминания выключены"
     await callback.answer(status_text, show_alert=False)
     
-    # Обновляем сообщение
-    db = get_db_manager()
-    async with db.session() as session:
-        project_repo = ProjectRepository(session)
-        project = await project_repo.get_by_id(project_id)
-    
-    status = "✅ включены" if project.reminders_enabled else "❌ выключены"
+    status = "✅ включены" if new_status else "❌ выключены"
     
     text = (
         f"🔔 <b>Настройки напоминаний</b>\n"
-        f"📁 Проект: {project.name}\n\n"
+        f"📁 Проект: {project_name}\n\n"
         f"📊 <b>Текущие настройки:</b>\n"
         f"• Статус: {status}\n"
-        f"• Время: <b>{project.reminder_hour:02d}:{project.reminder_minute:02d}</b> (МСК)\n"
-        f"• Напоминать за: <b>{project.reminder_days_before}</b> дн. до дедлайна\n\n"
+        f"• Время: <b>{reminder_hour:02d}:{reminder_minute:02d}</b> (МСК)\n"
+        f"• Напоминать за: <b>{reminder_days}</b> дн. до дедлайна\n\n"
         f"<i>Напоминания отправляются всем ответственным за задачи с приближающимися дедлайнами</i>"
     )
     
@@ -107,10 +107,10 @@ async def callback_toggle_reminders(callback: CallbackQuery):
         text,
         reply_markup=get_reminders_settings_keyboard(
             project_id=project_id,
-            enabled=project.reminders_enabled,
-            hour=project.reminder_hour,
-            minute=project.reminder_minute,
-            days_before=project.reminder_days_before,
+            enabled=new_status,
+            hour=reminder_hour,
+            minute=reminder_minute,
+            days_before=reminder_days,
         ),
         parse_mode="HTML",
     )
@@ -149,25 +149,24 @@ async def callback_set_reminder_time(callback: CallbackQuery):
         
         project.reminder_hour = hour
         project.reminder_minute = minute
+        
+        # Сохраняем данные для ответа
+        project_name = project.name
+        reminders_enabled = project.reminders_enabled
+        reminder_days = project.reminder_days_before
     
     logger.info(f"Project {project_id} reminder time set to {hour:02d}:{minute:02d}")
     await callback.answer(f"✅ Время установлено: {hour:02d}:{minute:02d}", show_alert=False)
     
-    # Возвращаемся к настройкам
-    db = get_db_manager()
-    async with db.session() as session:
-        project_repo = ProjectRepository(session)
-        project = await project_repo.get_by_id(project_id)
-    
-    status = "✅ включены" if project.reminders_enabled else "❌ выключены"
+    status = "✅ включены" if reminders_enabled else "❌ выключены"
     
     text = (
         f"🔔 <b>Настройки напоминаний</b>\n"
-        f"📁 Проект: {project.name}\n\n"
+        f"📁 Проект: {project_name}\n\n"
         f"📊 <b>Текущие настройки:</b>\n"
         f"• Статус: {status}\n"
-        f"• Время: <b>{project.reminder_hour:02d}:{project.reminder_minute:02d}</b> (МСК)\n"
-        f"• Напоминать за: <b>{project.reminder_days_before}</b> дн. до дедлайна\n\n"
+        f"• Время: <b>{hour:02d}:{minute:02d}</b> (МСК)\n"
+        f"• Напоминать за: <b>{reminder_days}</b> дн. до дедлайна\n\n"
         f"<i>Напоминания отправляются всем ответственным за задачи с приближающимися дедлайнами</i>"
     )
     
@@ -175,10 +174,10 @@ async def callback_set_reminder_time(callback: CallbackQuery):
         text,
         reply_markup=get_reminders_settings_keyboard(
             project_id=project_id,
-            enabled=project.reminders_enabled,
-            hour=project.reminder_hour,
-            minute=project.reminder_minute,
-            days_before=project.reminder_days_before,
+            enabled=reminders_enabled,
+            hour=hour,
+            minute=minute,
+            days_before=reminder_days,
         ),
         parse_mode="HTML",
     )
@@ -209,10 +208,10 @@ async def process_custom_reminder_time(message: Message, state: FSMContext):
     data = await state.get_data()
     project_id = data["reminder_project_id"]
     
-    text = message.text.strip()
+    text_input = message.text.strip()
     
     try:
-        parts = text.split(":")
+        parts = text_input.split(":")
         if len(parts) != 2:
             raise ValueError()
         
@@ -244,36 +243,35 @@ async def process_custom_reminder_time(message: Message, state: FSMContext):
         
         project.reminder_hour = hour
         project.reminder_minute = minute
+        
+        # Сохраняем данные для ответа
+        project_name = project.name
+        reminders_enabled = project.reminders_enabled
+        reminder_days = project.reminder_days_before
     
     await state.clear()
     logger.info(f"Project {project_id} reminder time set to {hour:02d}:{minute:02d}")
     
-    # Показываем настройки
-    db = get_db_manager()
-    async with db.session() as session:
-        project_repo = ProjectRepository(session)
-        project = await project_repo.get_by_id(project_id)
-    
-    status = "✅ включены" if project.reminders_enabled else "❌ выключены"
+    status = "✅ включены" if reminders_enabled else "❌ выключены"
     
     text = (
         f"✅ <b>Время установлено: {hour:02d}:{minute:02d}</b>\n\n"
         f"🔔 <b>Настройки напоминаний</b>\n"
-        f"📁 Проект: {project.name}\n\n"
+        f"📁 Проект: {project_name}\n\n"
         f"📊 <b>Текущие настройки:</b>\n"
         f"• Статус: {status}\n"
-        f"• Время: <b>{project.reminder_hour:02d}:{project.reminder_minute:02d}</b> (МСК)\n"
-        f"• Напоминать за: <b>{project.reminder_days_before}</b> дн. до дедлайна"
+        f"• Время: <b>{hour:02d}:{minute:02d}</b> (МСК)\n"
+        f"• Напоминать за: <b>{reminder_days}</b> дн. до дедлайна"
     )
     
     await message.answer(
         text,
         reply_markup=get_reminders_settings_keyboard(
             project_id=project_id,
-            enabled=project.reminders_enabled,
-            hour=project.reminder_hour,
-            minute=project.reminder_minute,
-            days_before=project.reminder_days_before,
+            enabled=reminders_enabled,
+            hour=hour,
+            minute=minute,
+            days_before=reminder_days,
         ),
         parse_mode="HTML",
     )
@@ -311,27 +309,27 @@ async def callback_set_reminder_days(callback: CallbackQuery):
             return
         
         project.reminder_days_before = days
+        
+        # Сохраняем данные для ответа
+        project_name = project.name
+        reminders_enabled = project.reminders_enabled
+        reminder_hour = project.reminder_hour
+        reminder_minute = project.reminder_minute
     
     logger.info(f"Project {project_id} reminder days set to {days}")
     
     days_word = "день" if days == 1 else ("дня" if days in [2, 3, 4] else "дней")
     await callback.answer(f"✅ Установлено: за {days} {days_word}", show_alert=False)
     
-    # Возвращаемся к настройкам
-    db = get_db_manager()
-    async with db.session() as session:
-        project_repo = ProjectRepository(session)
-        project = await project_repo.get_by_id(project_id)
-    
-    status = "✅ включены" if project.reminders_enabled else "❌ выключены"
+    status = "✅ включены" if reminders_enabled else "❌ выключены"
     
     text = (
         f"🔔 <b>Настройки напоминаний</b>\n"
-        f"📁 Проект: {project.name}\n\n"
+        f"📁 Проект: {project_name}\n\n"
         f"📊 <b>Текущие настройки:</b>\n"
         f"• Статус: {status}\n"
-        f"• Время: <b>{project.reminder_hour:02d}:{project.reminder_minute:02d}</b> (МСК)\n"
-        f"• Напоминать за: <b>{project.reminder_days_before}</b> дн. до дедлайна\n\n"
+        f"• Время: <b>{reminder_hour:02d}:{reminder_minute:02d}</b> (МСК)\n"
+        f"• Напоминать за: <b>{days}</b> дн. до дедлайна\n\n"
         f"<i>Напоминания отправляются всем ответственным за задачи с приближающимися дедлайнами</i>"
     )
     
@@ -339,10 +337,10 @@ async def callback_set_reminder_days(callback: CallbackQuery):
         text,
         reply_markup=get_reminders_settings_keyboard(
             project_id=project_id,
-            enabled=project.reminders_enabled,
-            hour=project.reminder_hour,
-            minute=project.reminder_minute,
-            days_before=project.reminder_days_before,
+            enabled=reminders_enabled,
+            hour=reminder_hour,
+            minute=reminder_minute,
+            days_before=days,
         ),
         parse_mode="HTML",
     )
