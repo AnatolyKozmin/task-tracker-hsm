@@ -16,14 +16,19 @@ ENV PYTHONUNBUFFERED=1 \
 # системные зависимости не требуются
 
 # Копируем requirements и устанавливаем зависимости Python
-# Это делается отдельно для лучшего кеширования слоёв
-# Используем российское зеркало PyPI для более стабильного соединения
+# Используем российские/китайские зеркала для более стабильного соединения
 COPY requirements.txt .
 RUN pip install --no-cache-dir \
     --timeout=100 \
     --retries=5 \
     --index-url https://pypi.tuna.tsinghua.edu.cn/simple \
     --trusted-host pypi.tuna.tsinghua.edu.cn \
+    -r requirements.txt || \
+    pip install --no-cache-dir \
+    --timeout=100 \
+    --retries=5 \
+    --index-url https://pypi.mirrors.ustc.edu.cn/simple \
+    --trusted-host pypi.mirrors.ustc.edu.cn \
     -r requirements.txt || \
     pip install --no-cache-dir --timeout=100 --retries=5 -r requirements.txt
 
