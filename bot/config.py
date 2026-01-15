@@ -9,8 +9,8 @@ class Settings(BaseSettings):
         extra="ignore",  # Игнорировать лишние переменные окружения
     )
     
-    # Telegram
-    bot_token: str = Field(..., validation_alias="BOT_TOKEN")
+    # Telegram (опционально для веб-интерфейса)
+    bot_token: str = Field(default="", validation_alias="BOT_TOKEN")
     
     # PostgreSQL
     postgres_host: str = Field("db", validation_alias="POSTGRES_HOST")

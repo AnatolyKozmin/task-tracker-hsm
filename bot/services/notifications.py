@@ -92,38 +92,66 @@ async def send_project_reminders(bot: Bot, project_id: int):
         if not tasks_list and not overdue_list:
             continue
         
-        message = f"👋 <b>Напоминание от проекта \"{project_name}\"</b>\n\n"
+        message = f"🔔 <b>Напоминание от проекта \"{project_name}\"</b>\n\n"
         
         if overdue_list:
-            message += "🚨 <b>ПРОСРОЧЕННЫЕ:</b>\n"
-            for task_data in overdue_list:
-                deadline_str = format_datetime(task_data["deadline"])
-                message += f"• <b>{task_data['title']}</b>\n"
-                message += f"  ⚠️ DDL был: {deadline_str}\n\n"
-        
-        if tasks_list:
-            message += "📋 <b>Приближающиеся дедлайны:</b>\n"
-            for task_data in tasks_list:
-                deadline_str = format_datetime(task_data["deadline"])
-                
-                # Определяем срочность
+            message += "🚨 <b>ПРОСРОЧЕННЫЕ ЗАДАЧИ:</b>\n"
+            message += "━━━━━━━━━━━━━━━━━━━━\n"
+            for i, task_data in enumerate(overdue_list, 1):
+                deadline_str = format_datetime(task_data["deadline"], with_year=True)
                 deadline = task_data["deadline"]
                 if deadline:
                     now_naive = moscow_now().replace(tzinfo=None)
                     deadline_naive = deadline.replace(tzinfo=None) if deadline.tzinfo else deadline
-                    days_left = (deadline_naive - now_naive).days
-                    
-                    if days_left <= 1:
-                        urgency = "🔴"
-                    elif days_left <= 2:
-                        urgency = "🟡"
-                    else:
-                        urgency = "🟢"
+                    days_overdue = (now_naive - deadline_naive).days
+                    overdue_text = f"просрочено на {days_overdue} дн." if days_overdue > 0 else "просрочено сегодня"
                 else:
-                    urgency = "📋"
+                    overdue_text = "просрочено"
                 
-                message += f"• {urgency} <b>{task_data['title']}</b>\n"
-                message += f"  📅 DDL: {deadline_str}\n\n"
+                message += f"<b>{i}. {task_data['title']}</b>\n"
+                message += f"   ⚠️ {overdue_text} | DDL: {deadline_str}\n\n"
+            message += "\n"
+        
+        if tasks_list:
+            message += "📋 <b>ПРИБЛИЖАЮЩИЕСЯ ДЕДЛАЙНЫ:</b>\n"
+            message += "━━━━━━━━━━━━━━━━━━━━\n"
+            for i, task_data in enumerate(tasks_list, 1):
+                deadline_str = format_datetime(task_data["deadline"], with_year=True)
+                
+                # Определяем срочность и время до дедлайна
+                deadline = task_data["deadline"]
+                urgency_emoji = "📋"
+                time_left = ""
+                
+                if deadline:
+                    now_naive = moscow_now().replace(tzinfo=None)
+                    deadline_naive = deadline.replace(tzinfo=None) if deadline.tzinfo else deadline
+                    days_left = (deadline_naive - now_naive).days
+                    hours_left = (deadline_naive - now_naive).total_seconds() / 3600
+                    
+                    if days_left < 0:
+                        urgency_emoji = "🔴"
+                        time_left = f"просрочено на {abs(days_left)} дн."
+                    elif hours_left <= 24:
+                        urgency_emoji = "🔴"
+                        if hours_left < 1:
+                            time_left = "менее часа!"
+                        elif hours_left < 12:
+                            time_left = f"через {int(hours_left)} ч."
+                        else:
+                            time_left = "сегодня!"
+                    elif days_left <= 1:
+                        urgency_emoji = "🔴"
+                        time_left = "завтра!"
+                    elif days_left <= 2:
+                        urgency_emoji = "🟡"
+                        time_left = f"через {days_left} дн."
+                    else:
+                        urgency_emoji = "🟢"
+                        time_left = f"через {days_left} дн."
+                
+                message += f"{urgency_emoji} <b>{i}. {task_data['title']}</b>\n"
+                message += f"   📅 {deadline_str} ({time_left})\n\n"
         
         message += "💪 <i>Удачи в работе!</i>"
         

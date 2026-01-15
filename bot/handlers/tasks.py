@@ -17,6 +17,7 @@ from bot.keyboards import (
 )
 from bot.states import TaskStates
 from bot.utils import moscow_now, format_datetime, parse_datetime
+from bot.utils.telegram import safe_edit_text
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -34,6 +35,8 @@ STATUS_NAMES = {
 @router.callback_query(F.data == "tasks:my")
 async def callback_my_tasks(callback: CallbackQuery):
     """Мои задачи"""
+    from datetime import datetime
+    
     db = get_db_manager()
     async with db.session() as session:
         task_repo = TaskRepository(session)
@@ -45,21 +48,62 @@ async def callback_my_tasks(callback: CallbackQuery):
         tasks = [t for t in tasks if t.status != TaskStatus.COMPLETED.value]
     
     if tasks:
-        text = "📋 <b>Ваши активные задачи:</b>\n\n"
-        for i, task in enumerate(tasks, 1):
+        text = "📋 <b>Ваши активные задачи</b>\n"
+        text += "━━━━━━━━━━━━━━━━━━━━\n\n"
+        
+        # Сортируем задачи: сначала просроченные, потом по дедлайну
+        now = moscow_now().replace(tzinfo=None)
+        sorted_tasks = sorted(
+            tasks,
+            key=lambda t: (
+                0 if (t.deadline and t.deadline.replace(tzinfo=None) < now) else 1,
+                t.deadline.replace(tzinfo=None) if t.deadline else datetime.max.replace(tzinfo=None)
+            )
+        )
+        
+        for i, task in enumerate(sorted_tasks, 1):
             status = STATUS_NAMES.get(task.status, "?")
-            deadline = ""
-            if task.deadline:
-                deadline = f"\n   📅 DDL: {format_datetime(task.deadline, with_year=True)}"
             project_name = task.project.name if task.project else "?"
-            text += f"{i}. <b>{task.title}</b>\n   {status} | 📁 {project_name}{deadline}\n\n"
+            
+            # Определяем срочность
+            urgency_emoji = ""
+            deadline_text = ""
+            
+            if task.deadline:
+                deadline_naive = task.deadline.replace(tzinfo=None) if task.deadline.tzinfo else task.deadline
+                days_left = (deadline_naive - now).days
+                hours_left = (deadline_naive - now).total_seconds() / 3600
+                
+                if days_left < 0:
+                    urgency_emoji = "🔴"
+                    deadline_text = f"⚠️ Просрочено на {abs(days_left)} дн."
+                elif hours_left <= 24:
+                    urgency_emoji = "🔴"
+                    if hours_left < 1:
+                        deadline_text = "⚠️ Менее часа!"
+                    else:
+                        deadline_text = f"⚠️ Через {int(hours_left)} ч."
+                elif days_left <= 1:
+                    urgency_emoji = "🔴"
+                    deadline_text = "⚠️ Завтра!"
+                elif days_left <= 2:
+                    urgency_emoji = "🟡"
+                    deadline_text = f"📅 Через {days_left} дн."
+                else:
+                    urgency_emoji = "🟢"
+                    deadline_text = f"📅 Через {days_left} дн."
+                
+                deadline_text = f"\n   {deadline_text} | DDL: {format_datetime(task.deadline, with_year=True)}"
+            
+            text += f"{urgency_emoji} <b>{i}. {task.title}</b>\n"
+            text += f"   {status} | 📁 {project_name}{deadline_text}\n\n"
     else:
         text = "📋 <b>У вас нет активных задач</b>\n\n🎉 Отличная работа!"
     
-    await callback.message.edit_text(
+    await safe_edit_text(
+        callback,
         text,
         reply_markup=get_my_tasks_keyboard(tasks) if tasks else get_main_menu_keyboard(),
-        parse_mode="HTML",
     )
     await callback.answer()
 
@@ -67,6 +111,8 @@ async def callback_my_tasks(callback: CallbackQuery):
 @router.message(F.text == "/mytasks")
 async def cmd_my_tasks(message: Message):
     """Команда /mytasks"""
+    from datetime import datetime
+    
     db = get_db_manager()
     async with db.session() as session:
         task_repo = TaskRepository(session)
@@ -77,14 +123,55 @@ async def cmd_my_tasks(message: Message):
         tasks = [t for t in tasks if t.status != TaskStatus.COMPLETED.value]
     
     if tasks:
-        text = "📋 <b>Ваши активные задачи:</b>\n\n"
-        for i, task in enumerate(tasks, 1):
+        text = "📋 <b>Ваши активные задачи</b>\n"
+        text += "━━━━━━━━━━━━━━━━━━━━\n\n"
+        
+        # Сортируем задачи: сначала просроченные, потом по дедлайну
+        now = moscow_now().replace(tzinfo=None)
+        sorted_tasks = sorted(
+            tasks,
+            key=lambda t: (
+                0 if (t.deadline and t.deadline.replace(tzinfo=None) < now) else 1,
+                t.deadline.replace(tzinfo=None) if t.deadline else datetime.max.replace(tzinfo=None)
+            )
+        )
+        
+        for i, task in enumerate(sorted_tasks, 1):
             status = STATUS_NAMES.get(task.status, "?")
-            deadline = ""
-            if task.deadline:
-                deadline = f"\n   📅 DDL: {format_datetime(task.deadline, with_year=True)}"
             project_name = task.project.name if task.project else "?"
-            text += f"{i}. <b>{task.title}</b>\n   {status} | 📁 {project_name}{deadline}\n\n"
+            
+            # Определяем срочность
+            urgency_emoji = ""
+            deadline_text = ""
+            
+            if task.deadline:
+                deadline_naive = task.deadline.replace(tzinfo=None) if task.deadline.tzinfo else task.deadline
+                days_left = (deadline_naive - now).days
+                hours_left = (deadline_naive - now).total_seconds() / 3600
+                
+                if days_left < 0:
+                    urgency_emoji = "🔴"
+                    deadline_text = f"⚠️ Просрочено на {abs(days_left)} дн."
+                elif hours_left <= 24:
+                    urgency_emoji = "🔴"
+                    if hours_left < 1:
+                        deadline_text = "⚠️ Менее часа!"
+                    else:
+                        deadline_text = f"⚠️ Через {int(hours_left)} ч."
+                elif days_left <= 1:
+                    urgency_emoji = "🔴"
+                    deadline_text = "⚠️ Завтра!"
+                elif days_left <= 2:
+                    urgency_emoji = "🟡"
+                    deadline_text = f"📅 Через {days_left} дн."
+                else:
+                    urgency_emoji = "🟢"
+                    deadline_text = f"📅 Через {days_left} дн."
+                
+                deadline_text = f"\n   {deadline_text} | DDL: {format_datetime(task.deadline, with_year=True)}"
+            
+            text += f"{urgency_emoji} <b>{i}. {task.title}</b>\n"
+            text += f"   {status} | 📁 {project_name}{deadline_text}\n\n"
     else:
         text = "📋 <b>У вас нет активных задач</b>\n\n🎉 Отличная работа!"
     

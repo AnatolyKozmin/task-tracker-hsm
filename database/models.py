@@ -121,6 +121,30 @@ class Project(Base):
     tasks: Mapped[List["Task"]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
+    roles: Mapped[List["ProjectRole"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+
+
+class ProjectRole(Base):
+    """Динамическая роль в проекте с иерархией"""
+    __tablename__ = "project_roles"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(255), nullable=False)  # Название роли
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    level: Mapped[int] = mapped_column(Integer, default=0)  # Уровень в иерархии (0 = самый высокий)
+    can_manage_roles: Mapped[bool] = mapped_column(Boolean, default=False)  # Может управлять ролями
+    can_manage_tasks: Mapped[bool] = mapped_column(Boolean, default=True)  # Может управлять задачами
+    can_manage_members: Mapped[bool] = mapped_column(Boolean, default=False)  # Может управлять участниками
+    can_manage_settings: Mapped[bool] = mapped_column(Boolean, default=False)  # Может управлять настройками
+    managed_by_role_ids: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON список ID ролей, которые управляют этой ролью
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    
+    # Отношения
+    project: Mapped["Project"] = relationship(back_populates="roles")
+    members: Mapped[List["ProjectMember"]] = relationship(back_populates="role_obj")
 
 
 class ProjectMember(Base):
@@ -130,7 +154,9 @@ class ProjectMember(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"))
-    role: Mapped[RoleType] = mapped_column(String(50), default=RoleType.MEMBER.value)
+    role_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("project_roles.id", ondelete="SET NULL"), nullable=True)
+    # Старое поле для обратной совместимости (будет удалено после миграции)
+    role: Mapped[str] = mapped_column(String(50), nullable=True)
     joined_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     # Уникальность: один пользователь - одна роль в проекте
@@ -141,6 +167,7 @@ class ProjectMember(Base):
     # Отношения
     project: Mapped["Project"] = relationship(back_populates="members")
     user: Mapped["User"] = relationship(back_populates="project_memberships")
+    role_obj: Mapped[Optional["ProjectRole"]] = relationship(back_populates="members")
 
 
 class Task(Base):
